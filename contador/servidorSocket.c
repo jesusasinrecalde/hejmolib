@@ -25,7 +25,6 @@ void ServidorSocket( sck_desc  * fd , eProcessSocket (*fncprt)(  int sock_fd, u_
 					perror("call to recv");
 					exit(1);
 			}		
-
 			process=fncprt(temp_sock_descriptor,buf);
 	}
 	close(temp_sock_descriptor);

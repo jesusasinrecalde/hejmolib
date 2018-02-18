@@ -9,16 +9,92 @@
 #include "structDatos.h"
 #include "hiloContador.h"
 #include <signal.h>
+#include <errno.h>
+#include <unistd.h>
+
+
 stDatos Datos;
 
 eProcessSocket Funcion(int sock_fd , u_int8_t * buffer );
 
 void HndSennal( int sennal );
 
-void main() {
+void main(int arg , char ** argv) {
   
   sck_desc fd_descriptor;
   int port = 8000;
+   FILE * fp;
+   pid_t pid , sid;
+   
+   if(arg != 2 )
+   {
+	   perror(" fallo en los argumentos ( -s -k )\n");
+	   exit(EXIT_FAILURE);
+   }
+   if(!strcmp(argv[1],"-k"))
+   {
+	   fp = fopen("/tmp/hejmo/contador.pid","r");
+	   if(fp)
+	    {
+			system("kill `cat /tmp/hejmo/contador.pid`");
+			exit(EXIT_SUCCESS);
+		}
+		else
+		{
+			perror(" programa no lanzado \n");
+			exit(EXIT_FAILURE);
+		}
+   }
+   
+   if(strcmp(argv[1],"-s"))
+   {
+	   perror(" parametro incorrecto \n");
+	   exit(EXIT_FAILURE);
+    }
+   
+   pid = fork();
+   if(pid<0 )
+   {
+	perror("fork");
+	exit(EXIT_FAILURE);
+	}	
+   if(pid>0) // llamada padre 
+   {
+	   exit(EXIT_SUCCESS);
+    }
+   
+   fp = fopen("/tmp/hejmo/contador.pid","r");
+   if( fp )
+   {
+	   perror(" proceso ya en funcionamiento");
+	   exit(EXIT_FAILURE);
+   }
+   
+    
+   // se esta en la llamada hijo , se situa el directorio de ejecucion el actual  
+   if((sid = setsid()) <0 )
+   {
+	   perror("setsid");
+	   exit(EXIT_FAILURE);
+	}
+	
+	fp= fopen("/tmp/hejmo/contador.pid","w");
+   fprintf(fp,"%d",sid);
+   fclose(fp);
+    
+   if(chdir("/") <0 )
+   {
+	   perror("chdir");
+	   exit(EXIT_FAILURE);
+    }
+   
+   umask(0); // se restablece el modo archivo
+   
+  // close(STDIN_FILENO );
+  // close (STDOUT_FILENO );
+  // close(STDERR_FILENO);
+   
+   
    
   if( signal(SIGTERM,HndSennal) == SIG_ERR )
   {
@@ -39,33 +115,42 @@ eProcessSocket Funcion(int sock_fd , u_int8_t * buffer )
 	stComand * comando = (stComand * )buffer;
 	stRespuesta Respuesta;
 
+    BloqueaDatos(&Datos);
 	switch(comando->Comando)
 	{
 		case CMD_SETVALORFINAL :
-			BloqueaDatos(&Datos);
+			
 				Datos.valor_final=comando->ValorFinal;
 				//printf("Cambio valor final %d \n",Datos.valor_final);
 				printf("Datos %d %d %d %d \n",Datos.estado ,Datos.ContadorMinuto ,Datos.valor_final ,Datos.Contador);
-			DesbloqueaDatos(&Datos);
+			
 			break;
 		case CMD_GETDATA : // Devuelve los datos 
-			BloqueaDatos(&Datos);
 				printf("GetData \n");
 				Respuesta.estado=Datos.estado;
 				Respuesta.Contador=Datos.Contador;
 				Respuesta.ValorFinal=Datos.valor_final;
 				send(sock_fd,&Respuesta,sizeof(stRespuesta),0);
-			DesbloqueaDatos(&Datos);
+				break;
+		case CMD_SETESTADO :
+			Datos.estado=comando->estado;
+			printf("SET Estado %d \n",Datos.estado);
+			break;
+		case CMD_SETCONTADOR :
+			Datos.Contador=comando->Contador;
+			if(Datos.Contador==0) // implica un reseteo del contador de horas , tambien hay que resetear el de minuto
+				Datos.ContadorMinuto=0;
+			printf ("SET Contador %d \n",Datos.Contador);
 			break;
 	}
-	printf(">>>>> %d \n",comando->Comando);
+	DesbloqueaDatos(&Datos);
 	return SCK_CONTINUE;
 }
 
 
 void HndSennal ( int Sennal )
 {
-	printf("hola soy una sennal \n");
 	GrabaDatosAFichero(&Datos);
+	system (" rm /tmp/hejmo/contador.pid");
 	exit(0);
 }

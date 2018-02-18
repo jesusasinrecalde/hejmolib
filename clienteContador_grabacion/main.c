@@ -45,15 +45,15 @@ int main (int ac, char *ag[])
   int Indice=0;
   char parametro[255];
  
-
-  if (ac != 4)
+ 
+  if (ac != 3)
   {
-    printf ("usage: %s Id_device Id_hejmo filename", ag[0]);
+    printf ("usage: %s Id_hejmo filename", ag[0]);
 	exit(-1);
-}
+  }
   
-  strcpy(FileName,ag[3]);
-  
+   strcpy(FileName,ag[2]);
+    
   fp=fopen(FileName,"r");
   if(!fp )
   {	
@@ -64,10 +64,10 @@ int main (int ac, char *ag[])
   while(!feof(fp))
   {
 	  fgets(bufferIn,511,fp); // lectura de linea 
-	   
+	
 	  if(ProcesaLinea(bufferIn,tablaParam[IndiceTabla].Nombre,tablaParam[IndiceTabla].Valor))
 	  {
-		  if(tablaParam[IndiceTabla].Nombre[0]==ag[2][0]) // si La linea pertenece al IdHejmo Correspondiente , se incluye  en la tabla  
+		  if(tablaParam[IndiceTabla].Nombre[0]==ag[1][0]) // si La linea pertenece al IdHejmo Correspondiente , se incluye  en la tabla  
 		  {
 			IndiceTabla++;
 		  
@@ -76,6 +76,7 @@ int main (int ac, char *ag[])
 	  }
 	  
   }// fin procesamiento del fichero 
+  printf(" indiceTabla %d \n",IndiceTabla);
   fclose(fp);
   // en IndiceTabla se encuentra el numero de parametros  cargados en la tabla 
   
@@ -91,13 +92,13 @@ int main (int ac, char *ag[])
 
   int pos=0;
   
-  sprintf(parametro,"%s_dat1",ag[2]);
+  sprintf(parametro,"%s_dat1",ag[1]);
   GrabaParam(parametro, CMD_SETESTADO,  tablaParam, IndiceTabla);
   
-  sprintf(parametro,"%s_dat2",ag[2]);
+  sprintf(parametro,"%s_dat2",ag[1]);
   GrabaParam(parametro, CMD_SETVALORFINAL,  tablaParam, IndiceTabla);
  
- sprintf(parametro,"%s_dat3",ag[2]);
+ sprintf(parametro,"%s_dat3",ag[1]);
   GrabaParam(parametro, CMD_SETCONTADOR,  tablaParam, IndiceTabla);
     
   
@@ -120,20 +121,25 @@ int main (int ac, char *ag[])
  }
  */
  stComand comandoAEnviar;
-   
   pos=DarDatoParametro(TablaParam,NumElmTablaParam,textParam);
   
-  if(pos!=-1 && strcmp(TablaParam[pos].Valor,"**"))
+  printf(" pos %d \n",pos);
+  if(pos!=-1 &&  strcmp(TablaParam[pos].Valor,"**"))
   {
+	printf(" ....> %d \n",comando);
 	comandoAEnviar.Comando=comando;
 	switch(comando)
 	{
 		case CMD_SETVALORFINAL :
+			printf(" comando SET VALOR FINAL a enviar [%d] \n",atoi(TablaParam[pos].Valor));
 			comandoAEnviar.ValorFinal=atoi(TablaParam[pos].Valor);
 			break;
 		case CMD_SETESTADO :
+			printf(" comando a enviar %s %d \n",TablaParam[pos].Valor,atoi(TablaParam[pos].Valor));
+			comandoAEnviar.estado=(eEstado)atoi(TablaParam[pos].Valor);
 			break;
 		case CMD_SETCONTADOR :
+			printf(" comando SET contador a enviar [%d] \n",atoi(TablaParam[pos].Valor));
 			comandoAEnviar.Contador=atoi(TablaParam[pos].Valor);
 			break;
 	}
@@ -250,6 +256,7 @@ int EnviaComando( stComand  * comando)
    stRespuesta respuesta;
    int fd, numbytes;       
    int idHejmo=0;
+   int valor;
    /* ficheros descriptores */
 
 
@@ -260,32 +267,38 @@ int EnviaComando( stComand  * comando)
    /* información sobre la dirección del servidor */
 
    if ((he=gethostbyname("127.0.0.1"))==NULL){       
-      
+	  perror("gethostbyname");
       return -1;
    }
 
    if ((fd=socket(AF_INET, SOCK_STREAM, 0))==-1){  
+	   perror("socket");
        return -2 ;
    }
 
+   bzero(&server,sizeof(server));	
    server.sin_family = AF_INET;
+   server.sin_addr.s_addr = htonl (INADDR_ANY);
+   server.sin_addr.s_addr = ((struct in_addr* ) (he->h_addr))->s_addr;
    server.sin_port = htons(PORT); 
    /* htons() es necesaria nuevamente ;-o */
-   server.sin_addr = *((struct in_addr *)he->h_addr);  
+   //server.sin_addr = *((struct in_addr *)he->h_addr);  
    /*he->h_addr pasa la información de ``*he'' a "h_addr" */
-   bzero(&(server.sin_zero),8);
+   //bzero(&(server.sin_zero),8);
 
-   if(connect(fd, (struct sockaddr *)&server,
-      sizeof(struct sockaddr))==-1){ 
+   if(connect(fd, (struct sockaddr *) &server, sizeof(server))==-1){ 
+     perror("connect");
      return -2 ;
    }
 
-   
-	if(send(fd,&comando,sizeof(stComand),0)==-1)
-	{
+   printf("envia comando \n");
+	valor =send(fd,comando,sizeof(stComand),0);
 	
-		return -3;
-	}
+	
+	//{
+	//	perror("send");
+	//	return -3;
+	//}
 	
 
    close(fd);   /* cerramos fd =) */

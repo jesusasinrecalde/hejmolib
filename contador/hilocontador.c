@@ -25,14 +25,12 @@ void hiloContador( void )
 			
 			if(Datos.estado!=ST_PAUSE)
 			{	
-				printf("%d %d %d %d \n",Datos.estado,Datos.ContadorMinuto,Datos.valor_final,Datos.Contador);
 				if(Datos.valor_final==0 && Datos.Contador == 0)
 				{
 					Datos.estado = ST_NOACTIVO;
 				}
 				
 				
-				printf(" %d %d \n",Datos.valor_final,Datos.Contador);
 				if(Datos.valor_final>Datos.Contador)
 				{
 					Datos.estado=ST_ACTIVO;
@@ -49,30 +47,32 @@ void hiloContador( void )
 						Datos.Contador++; // Avanzamos la hora 
 						Datos.ContadorMinuto=0;
 					}
-					printf("Datos ...  estado %d , Minuto %d contador %d  valor final %d  \n",Datos.estado,Datos.ContadorMinuto,Datos.Contador,Datos.valor_final);
+					
 				}
 			}
-			printf("Estado  ",Datos.estado);
+			/*printf("Datos ...  ");
 			
 			switch(Datos.estado)
 			{
 				case ST_NOACTIVO:
-					printf("ST_NOACTIVO \n");
+					printf("ST_NOACTIVO ");
 					break;
 				case ST_ACTIVO:
-					printf ("ST_ACTIVO \n");
+					printf ("ST_ACTIVO ");
 					break;
 				case ST_PAUSE:
-					printf("ST_PAUSE  \n");
+					printf("ST_PAUSE  ");
 					break;
 				case ST_END:
-					printf ("ST_END \n");
+					printf ("ST_END ");
 					break;
 				default :
-					printf (" %d \n",Datos.estado);
+					printf (" %d ",Datos.estado);
 					break;
 					
 			}
+			printf(" Minuto %d contador %d  valor final %d  \n",Datos.ContadorMinuto,Datos.Contador,Datos.valor_final);
+			*/
 			DesbloqueaDatos(&Datos);
 			sleep(60);// el proceso se activa cada minuto 
 		}

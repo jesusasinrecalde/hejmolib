@@ -7,7 +7,7 @@ LIBS =
 LD = gcc
 LDFLAGS =  -O2
 
-clieneteContador_grabacion : $(OBJ)
+clienteContador_grabacion : $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 main.o : main.c
